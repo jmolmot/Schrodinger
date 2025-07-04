@@ -174,102 +174,110 @@ void guardarPerfil(const char *nombre, cplx *phi, double *V){
 
 int main() {
     int nciclos = 20;
-    double lambda = 0.5;
-    double k_tilde = 2.0 * PI * nciclos / N;
-    double s_tilde = 1.0 / (4.0 * k_tilde * k_tilde);
+    double lambda_min = 0.1;
+    double lambda_max = 2.0;
+    double lambda_step = 0.05;
 
-    cplx phi[N+1], chi[N+1], phi_next[N+1];
-    cplx A1[N+1], A2[N+1], A3[N+1];
-    cplx gamma[N], alfa[N], beta[N], b[N+1];
-    double V[N+1];
-    double PD[T], normas[T], xesp[T], Tesp[T];
+    const char *output_dir = "C:\\Users\\Turkipollito\\Escritorio\\Universidad\\3Fisica\\Segundocuatri\\Computacional\\Schrodinger\\archivos\\";
 
-    int mT = 0;
-    double PD_total = 0.0;
-    srand(time(NULL));
+    for (double lambda = lambda_min; lambda <= lambda_max + 1e-8; lambda += lambda_step) {
+        double k_tilde = 2.0 * PI * nciclos / N;
+        double s_tilde = 1.0 / (4.0 * k_tilde * k_tilde);
 
-    // ----- Nombres de archivos dinámicos -----
-    char nombre_PD[64], nombre_norma[64], nombre_xesp[64], nombre_Tesp[64], nombre_phiV[64], nombre_PDnd[64];
-    sprintf(nombre_PD,    "PD_lambda%.2f.txt", lambda);
-    sprintf(nombre_norma, "norma_lambda%.2f.txt", lambda);
-    sprintf(nombre_xesp,  "xesp_lambda%.2f.txt", lambda);
-    sprintf(nombre_Tesp,  "Tesp_lambda%.2f.txt", lambda);
-    sprintf(nombre_phiV,  "phiV_lambda%.2f.txt", lambda);
-    sprintf(nombre_PDnd,  "PD_nD_todos_lambda%.2f.txt", lambda);
+        cplx phi[N+1], chi[N+1], phi_next[N+1];
+        cplx A1[N+1], A2[N+1], A3[N+1];
+        cplx gamma[N], alfa[N], beta[N], b[N+1];
+        double V[N+1];
+        double PD[T], normas[T], xesp[T], Tesp[T];
 
-    // --- Precalculo matrices fijas ---
-    inicializarPotencial(V, lambda, k_tilde);
-    construirTridiagonal(A1, A2, A3, V, s_tilde);
-    alfaGamma(A1, A2, A3, alfa, gamma);
+        int mT = 0;
+        double PD_total = 0.0;
+        srand(time(NULL));
 
-    // --- Simulaciones Monte Carlo ---
-    for (int experimento = 0; experimento < M; experimento++) {
-        inicializarPhi(phi, nciclos);
+        // ----- Nombres de archivos dinámicos -----
+        char nombre_PD[256], nombre_norma[256], nombre_xesp[256], nombre_Tesp[256], nombre_phiV[256], nombre_PDnd[256];
+        sprintf(nombre_PD,    "%sPD_lambda%.2f.txt", output_dir, lambda);
+        sprintf(nombre_norma, "%snorma_lambda%.2f.txt", output_dir, lambda);
+        sprintf(nombre_xesp,  "%sxesp_lambda%.2f.txt", output_dir, lambda);
+        sprintf(nombre_Tesp,  "%sTesp_lambda%.2f.txt", output_dir, lambda);
+        sprintf(nombre_phiV,  "%sphiV_lambda%.2f.txt", output_dir, lambda);
+        sprintf(nombre_PDnd,  "%sPD_nD_todos_lambda%.2f.txt", output_dir, lambda);
 
-        FILE *f_PD = NULL, *f_norma = NULL, *f_xesp = NULL, *f_Tesp = NULL, *f_phiV = NULL;
-        if (experimento == 0) {
-            f_PD    = fopen(nombre_PD, "w");
-            f_norma = fopen(nombre_norma, "w");
-            f_xesp  = fopen(nombre_xesp, "w");
-            f_Tesp  = fopen(nombre_Tesp, "w");
-            f_phiV  = fopen(nombre_phiV, "w");
-            if (!f_PD || !f_norma || !f_xesp || !f_Tesp || !f_phiV) {
-                printf("Error abriendo archivos de guardado\n");
-                return 1;
-            }
-        }
+        char nombre_Klambda[256];
+        sprintf(nombre_Klambda, "%sKvsLambda.txt", output_dir);
 
-        for (int n = 0; n < T; n++) {
-            PD[n]     = probabilidad(phi);
-            normas[n] = norm(phi);
-            xesp[n]   = valor_esperado_x(phi);
-            Tesp[n]   = valor_esperado_T(phi);
+        // --- Precalculo matrices fijas ---
+        inicializarPotencial(V, lambda, k_tilde);
+        construirTridiagonal(A1, A2, A3, V, s_tilde);
+        alfaGamma(A1, A2, A3, alfa, gamma);
 
+        // --- Simulaciones Monte Carlo ---
+        for (int experimento = 0; experimento < M; experimento++) {
+            inicializarPhi(phi, nciclos);
+
+            FILE *f_PD = NULL, *f_norma = NULL, *f_xesp = NULL, *f_Tesp = NULL, *f_phiV = NULL;
             if (experimento == 0) {
-                fprintf(f_PD,    "%d\t%.10f\n", n, PD[n]);
-                fprintf(f_norma, "%d\t%.10f\n", n, normas[n]);
-                fprintf(f_xesp,  "%d\t%.10f\n", n, xesp[n]);
-                fprintf(f_Tesp,  "%d\t%.10f\n", n, Tesp[n]);
-                if (n % 50 == 0) {
-                    for (int j = 0; j <= N; j++) {
-                        double x = j * h;
-                        double densidad = pow(cabs(phi[j]), 2);
-                        fprintf(f_phiV, "%.8f\t%.10f\t%.10f\n", x, densidad, V[j]);
-                    }
-                    fprintf(f_phiV, "\n");
+                f_PD    = fopen(nombre_PD, "w");
+                f_norma = fopen(nombre_norma, "w");
+                f_xesp  = fopen(nombre_xesp, "w");
+                f_Tesp  = fopen(nombre_Tesp, "w");
+                f_phiV  = fopen(nombre_phiV, "w");
+                if (!f_PD || !f_norma || !f_xesp || !f_Tesp || !f_phiV) {
+                    printf("Error abriendo archivos de guardado\n");
+                    return 1;
                 }
             }
-            pasoTemporal(phi, chi, A3, b, gamma, alfa, beta, s_tilde, phi_next);
+
+            for (int n = 0; n < T; n++) {
+                PD[n]     = probabilidad(phi);
+                normas[n] = norm(phi);
+                xesp[n]   = valor_esperado_x(phi);
+                Tesp[n]   = valor_esperado_T(phi);
+
+                if (experimento == 0) {
+                    fprintf(f_PD,    "%d\t%.10f\n", n, PD[n]);
+                    fprintf(f_norma, "%d\t%.10f\n", n, normas[n]);
+                    fprintf(f_xesp,  "%d\t%.10f\n", n, xesp[n]);
+                    fprintf(f_Tesp,  "%d\t%.10f\n", n, Tesp[n]);
+                    if (n % 50 == 0) {
+                        for (int j = 0; j <= N; j++) {
+                            double x = j * h;
+                            double densidad = pow(cabs(phi[j]), 2);
+                            fprintf(f_phiV, "%.8f\t%.10f\t%.10f\n", x, densidad, V[j]);
+                        }
+                        fprintf(f_phiV, "\n");
+                    }
+                }
+                pasoTemporal(phi, chi, A3, b, gamma, alfa, beta, s_tilde, phi_next);
+            }
+
+            if (experimento == 0) {
+                fclose(f_PD); fclose(f_norma); fclose(f_xesp); fclose(f_Tesp); fclose(f_phiV);
+            }
+
+            int nD = maximo(PD, T);
+            double PD_nD = PD[nD];
+            PD_total += PD_nD;
+
+            FILE *f_PDnd = fopen(nombre_PDnd, "a");
+            if (f_PDnd) {
+                fprintf(f_PDnd, "%.10f\n", PD_nD);
+                fclose(f_PDnd);
+            }
+
+            double p = (double)rand() / RAND_MAX;
+            if (p < PD_nD) mT++;
         }
 
-        if (experimento == 0) {
-            fclose(f_PD); fclose(f_norma); fclose(f_xesp); fclose(f_Tesp); fclose(f_phiV);
+        double K = (double)mT / M;
+        double PD_media = PD_total / M;
+        printf("lambda = %.3f, K = %.10f, PD_media = %.10f\n", lambda, K, PD_media);
+
+        FILE *f_Klambda = fopen(nombre_Klambda, "a");
+        if (f_Klambda) {
+            fprintf(f_Klambda, "%.3f\t%.10f\t%.10f\n", lambda, K, PD_media);
+            fclose(f_Klambda);
         }
-
-        int nD = maximo(PD, T);
-        double PD_nD = PD[nD];
-        PD_total += PD_nD;
-
-        FILE *f_PDnd = fopen(nombre_PDnd, "a");
-        if (f_PDnd) {
-            fprintf(f_PDnd, "%.10f\n", PD_nD);
-            fclose(f_PDnd);
-        }
-
-        double p = (double)rand() / RAND_MAX;
-        if (p < PD_nD) mT++;
     }
-
-    double K = (double)mT / M;
-    double PD_media = PD_total / M;
-    printf("Coeficiente de transmisión estimado K = %.g\n", K);
-    printf("Valor medio de PD(nD) = %g\n", PD_media);
-
-    FILE *f_Klambda = fopen("KvsLambda.txt", "a");
-    if (f_Klambda) {
-        fprintf(f_Klambda, "%.3f\t%.10f\t%.10f\n", lambda, K, PD_media);
-        fclose(f_Klambda);
-    }
-
     return 0;
 }
