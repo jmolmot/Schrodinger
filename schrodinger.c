@@ -5,10 +5,10 @@
 #include <time.h>
 
 #define PI 3.14159265358979323846
-#define N 1000
+#define N 500
 #define h 0.01
-#define T 2000
-#define M 1000
+#define T 3000
+#define M 100
 typedef double complex cplx;
 
 void inicializarPhi(cplx *phi, int nciclos);
@@ -102,7 +102,7 @@ void pasoTemporal(cplx *phi, cplx *chi, cplx *A3, cplx *b, cplx *gamma, cplx *al
 
 double probabilidad(cplx *phi){
     double suma = 0.0;
-    int ini = 4*N/5;
+    int ini = 3*N/5 + 1; // Justo después de la barrera
     for(int j=ini; j<=N; ++j){
         suma += pow(cabs(phi[j]), 2)*h;
     }
@@ -178,7 +178,7 @@ int main() {
     double lambda_max = 2.0;
     double lambda_step = 0.05;
 
-    const char *output_dir = "C:\\Users\\Turkipollito\\Escritorio\\Universidad\\3Fisica\\Segundocuatri\\Computacional\\Schrodinger\\archivos\\";
+    const char *output_dir = "C:\\Users\\molin\\Escritorio\\Universidad\\3Fisica\\Segundocuatri\\Compu\\Schrodinger\\archivos\\";
 
     for (double lambda = lambda_min; lambda <= lambda_max + 1e-8; lambda += lambda_step) {
         double k_tilde = 2.0 * PI * nciclos / N;
